@@ -1,0 +1,28 @@
+DROP TABLE sessions CASCADE;
+/*DROP TABLE packets CASCADE;
+DROP TABLE parsed CASCADE;
+*/
+DROP TABLE common CASCADE;
+DROP TABLE location CASCADE;
+DROP TABLE map_entry CASCADE;
+DROP TABLE uncompressed CASCADE;
+DROP TABLE compressed CASCADE;
+DROP TABLE object CASCADE;
+DROP TABLE mic_e CASCADE;
+DROP TABLE message CASCADE;
+DROP TABLE status CASCADE;
+DROP TABLE wx CASCADE;
+DROP TABLE thirdparty CASCADE;
+DROP TABLE telemetry_message CASCADE;
+DROP TABLE digis CASCADE;
+DROP TABLE routes CASCADE;
+DROP TABLE paths CASCADE;
+DROP VIEW IF EXISTS rf_digi_counts;
+DROP VIEW IF EXISTS wide3;
+DROP VIEW IF EXISTS first_hops;
+DROP VIEW IF EXISTS link_stats;
+DROP VIEW IF EXISTS tx_igate_positions;
+DROP VIEW IF EXISTS tx_igate_counts;
+DROP VIEW IF EXISTS link_stats;
+DROP INDEX location_idx;
+DROP INDEX digi_spatial_idx;
