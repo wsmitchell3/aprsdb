@@ -277,3 +277,33 @@ CREATE VIEW digi_stats AS
 				FROM routes AS r2 FULL OUTER JOIN digis AS d2 ON r2.dest=d2.call 
 				GROUP BY r2.dest) 
 			AS inbound ON d1.call=inbound.dest;
+
+CREATE VIEW links_last_10 AS
+	SELECT ROW_NUMBER() OVER(),
+		ST_SetSRID(ST_MakeLine(src.loc, dest.loc), 4326),
+		ST_DistanceSphere(src.loc, dest.loc)/1000 AS dist_km,
+		src.call AS src,
+		dest.call AS dest,
+		COUNT(*)
+	FROM common AS c1 INNER JOIN paths AS p1 ON c1.pid=p1.pid
+		INNER JOIN routes AS r1 ON r1.route_id=p1.route_id
+		INNER JOIN digis AS src ON r1.src=src.call
+		INNER JOIN digis AS dest ON r1.dest=dest.call
+	WHERE c1.rxtime > (SELECT max(rxtime)-600 FROM common)
+		AND c1.is_subpacket=False
+	GROUP BY r1.route_id, src.call, dest.call, src.loc, dest.loc;
+
+CREATE VIEW links_last_60 AS
+	SELECT ROW_NUMBER() OVER(),
+		ST_SetSRID(ST_MakeLine(src.loc, dest.loc), 4326),
+		ST_DistanceSphere(src.loc, dest.loc)/1000 AS dist_km,
+		src.call AS src,
+		dest.call AS dest,
+		COUNT(*)
+	FROM common AS c1 INNER JOIN paths AS p1 ON c1.pid=p1.pid
+		INNER JOIN routes AS r1 ON r1.route_id=p1.route_id
+		INNER JOIN digis AS src ON r1.src=src.call
+		INNER JOIN digis AS dest ON r1.dest=dest.call
+	WHERE c1.rxtime > (SELECT max(rxtime)-3600 FROM common)
+		AND c1.is_subpacket=False
+	GROUP BY r1.route_id, src.call, dest.call, src.loc, dest.loc;
