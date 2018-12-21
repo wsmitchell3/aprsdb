@@ -179,7 +179,7 @@ CREATE VIEW first_hops AS
 		c1.format,
 		d1.call AS digi,
 		ST_SetSRID(ST_MakeLine(d1.loc, l1.linestring), 4326) AS hopline, 
-		ST_Distance_Sphere(d1.loc, l1.linestring)/1000 AS dist_km, 
+		ST_DistanceSphere(d1.loc, l1.linestring)/1000 AS dist_km, 
 		COUNT(*) 
 	FROM common AS c1 
 		INNER JOIN map_entry AS e1 ON c1.pid=e1.pid 
@@ -195,7 +195,7 @@ CREATE VIEW first_hops AS
 CREATE VIEW link_stats AS
 	SELECT ROW_NUMBER() OVER (),
 		ST_SetSRID(ST_MakeLine(src.loc, dest.loc), 4326), 
-		ST_Distance_Sphere(src.loc, dest.loc)/1000 AS dist_km, 
+		ST_DistanceSphere(src.loc, dest.loc)/1000 AS dist_km, 
 		src.call AS src, 
 		dest.call AS dest, 
 		COUNT(*) 
@@ -211,13 +211,13 @@ CREATE VIEW tx_igate_positions AS
 		c1.format,
 		l1.linestring, 
 		COUNT(l1.linestring), 
-		ST_Distance_Sphere(l1.linestring, d1.loc)/1000 AS dist_km 
+		ST_DistanceSphere(l1.linestring, d1.loc)/1000 AS dist_km 
 	FROM common AS c1 INNER JOIN thirdparty AS t1 ON c1.pid=t1.subpacket_id 
 		INNER JOIN common AS c2 on t1.pid=c2.pid 
 		INNER JOIN map_entry AS m1 ON c1.pid=m1.pid 
 		INNER JOIN location AS l1 ON m1.lid=l1.lid 
 		INNER JOIN digis AS d1 ON c2.src=d1.call 
-	GROUP BY d1.call, c1.src, c1.format, l1.linestring, ST_Distance_Sphere(l1.linestring, d1.loc)/1000;
+	GROUP BY d1.call, c1.src, c1.format, l1.linestring, ST_DistanceSphere(l1.linestring, d1.loc)/1000;
 
 CREATE VIEW tx_igate_counts AS
 	SELECT ROW_NUMBER() OVER (),
