@@ -1,8 +1,6 @@
 DROP TABLE sessions CASCADE;
-/*DROP TABLE packets CASCADE;
-DROP TABLE parsed CASCADE;
-*/
 DROP TABLE common CASCADE;
+DROP TABLE aprsdb_errs CASCADE;
 DROP TABLE location CASCADE;
 DROP TABLE map_entry CASCADE;
 DROP TABLE uncompressed CASCADE;
