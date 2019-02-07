@@ -17,6 +17,14 @@ CREATE TABLE common(
 	is_subpacket BOOL DEFAULT False
 );
 
+CREATE TABLE aprsdb_errs(
+	eid SERIAL PRIMARY KEY,
+	rxtime DOUBLE PRECISION,
+	rxsession BIGINT REFERENCES sessions(session_id) ON DELETE CASCADE,
+	raw VARCHAR(256) NOT NULL,
+	msg VARCHAR(256)
+);
+
 CREATE TABLE location(
 	lid BIGSERIAL PRIMARY KEY,
 	latitude DOUBLE PRECISION,

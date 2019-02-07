@@ -39,7 +39,7 @@ dwts = re.compile("^\[([0-9]*?) ([0-9]{4})([0-9]{2})([0-9]{2})_([0-9]{2})([0-9]{
 
 # Set up data for database connection
 session_id = 0 # Will attempt to update
-my_schema = {'common':[], 'location':[], 'map_entry':[], 'mic_e':[], 'thirdparty':[], 'uncompressed':[], 'compressed':[], 'status':[], 'object':[], 'wx':[], 'message':[], 'telemetry_message':[]} # Fields will be drawn from the database itself
+my_schema = {'common':[], 'aprsdb_errs':[], 'location':[], 'map_entry':[], 'mic_e':[], 'thirdparty':[], 'uncompressed':[], 'compressed':[], 'status':[], 'object':[], 'wx':[], 'message':[], 'telemetry_message':[]} # Fields will be drawn from the database itself
 
 conn=None
 try: # Establish database connection
@@ -335,6 +335,19 @@ def process_parsed(parsed, conn, rxtime=time.time(), is_subpacket=False):
         mypacketid = cur.fetchone()[0]
         parsed['pid']=mypacketid
         conn.commit()
+    except psycopg2.DataError as de:
+        conn.rollback()
+        print(de.pgerror)
+        parsed['msg']=de.pgerror
+        try:
+            in_errs = {x:parsed[x] for x in my_schema['aprsdb_errs'] if x in parsed}
+            cur.execute(insert_sql_from_dict('aprsdb_errs', in_errs), in_errs)
+            conn.commit()
+            return -7
+        except:
+            conn.rollback()
+            raise
+            return -8
     except:
         # Take it all back if something fails
         conn.rollback()
