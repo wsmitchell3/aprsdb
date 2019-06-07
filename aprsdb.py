@@ -10,7 +10,14 @@ import aprslib # APRS parsing
 import sys, os # General system utilities
 import argparse # Parse arguments
 import datetime, time, re, configparser, getpass # Time, regex, config, and password entry
+import decimal # For truncating floats (e.g. lat/long)
 from psycopg2 import sql
+try:
+    import gpsd # Use the GPS library if we have it
+    import aprsgps # custom functions that require gpsd
+    use_gps = True
+except:
+    use_gps = False  # GPS library not found (nor required)
 
 # Parse arguments
 parser = argparse.ArgumentParser()
@@ -72,6 +79,7 @@ def check_rx_station(conn, parsed):
     returns: void
     """
     cur = conn.cursor()
+    mylid = None
     [digi_id, mycall, mysym, mytable, oldloc] = [None for _ in range(5)]
     try:
         # Look to see if rx "digi" is known
@@ -88,22 +96,26 @@ def check_rx_station(conn, parsed):
         # If the rx digi is new, add it
         if digi_id == None:
             cur.execute("INSERT INTO digis (call, aprs_sym, aprs_table, loc) VALUES (%s, %s, %s, %s)", (parsed['call'], parsed['symbol'], parsed['symbol_table'], myloc))
+
         else: # Digi is known
             # Check if rx digi has changed info
             if not (myloc==oldloc and mysym == parsed['symbol'] and mytable == parsed['symbol_table']):
                 # Update rx digi info if needed
                 cur.execute("UPDATE digis SET aprs_sym=%s, aprs_table=%s, loc=%s WHERE digi_id=%s;", (parsed['symbol'], parsed['symbol_table'], myloc, digi_id))
-                # Check for an existing entry in the location table
-                cur.execute("SELECT lid FROM location WHERE linestring=%s;", (myloc,))
-                mylid = cur.fetchone()
-                if mylid == None: # If location is new, add it
-                    cur.execute("INSERT INTO location (latitude, longitude, linestring) VALUES(%s, %s, %s);", (parsed['latitude'], parsed['longitude'], myloc))
+
+        # Check for an existing entry in the location table
+        cur.execute("SELECT lid FROM location WHERE linestring=%s;", (myloc,))
+        mylid = cur.fetchone()
+        if mylid == None: # If location is new, add it
+            cur.execute("INSERT INTO location (latitude, longitude, linestring) VALUES(%s, %s, %s) RETURNING lid;", (parsed['latitude'], parsed['longitude'], myloc))
+            mylid = cur.fetchone()
+        mylid = mylid[0]
 
         conn.commit()
     except:
         conn.rollback()  # If errors are encountered, abort
         raise
-    return
+    return mylid
 
 
 def insert_sql_from_dict(table, mydict, codastring=''):
@@ -309,6 +321,19 @@ def process_parsed(parsed, conn, rxtime=time.time(), is_subpacket=False):
     """
     parsed['is_subpacket']=is_subpacket
     parsed['rxtime']=rxtime
+    parsed['rx_loc_id'] = rxinfo['rx_loc_id'] # Get current loc_id for rx station
+    if use_gps: #GPS features enabled (i.e. rover)
+        if time.time() - rxinfo['gps_loc_time'] > 30: # seconds since prev. GPS point
+            try:
+                (mylat, mylon) = aprsgps.getLoc2D() # Get truncated coordinates
+                rxinfo['latitude'] = mylat
+                rxinfo['longitude'] = mylon
+                rxinfo['rx_loc_id'] = check_rx_station(conn, rxinfo) # Update rx_station location, getting the location id back (for inserting in the common table)
+                parsed['rx_loc_id'] = rxinfo['rx_loc_id'] # Put it into the parsed packet structure for insertion
+                rxinfo['gps_loc_time'] = time.time() # Update the timestamp for the rx_loc
+            except:
+                print("Unable to get GPS coordinates") # DEBUG
+
 
     # Work around potential SQL reserved words, characters, and case-sensitivity
     parsed['dest'] = parsed.pop('to')
@@ -366,6 +391,12 @@ def process_parsed(parsed, conn, rxtime=time.time(), is_subpacket=False):
 
     # Handle third-party packets
     if parsed['format']=='thirdparty':
+        # Source is a digi; check that it is known
+        cur.execute("SELECT call FROM digis WHERE call=%s;", (parsed['src'],))
+        myresult = cur.fetchone()
+        if myresult == None: # Found new digi
+            cur.execute("INSERT INTO digis (call) VALUES (%s);", (parsed['src'],))
+
         # Get the subpacket type
         parsed['subpacket_type'] = parsed['subpacket']['format']
         # Process the subpacket, getting its pid for back reference
@@ -555,9 +586,10 @@ def direwolf_escape(text):
 
 
 if __name__ == "__main__": # Program is running directly
-    check_rx_station(conn, rxinfo) # Test connectivity to database
+    rxinfo['rx_loc_id'] = check_rx_station(conn, rxinfo) # Test connectivity to database, and get rx_loc_id while we're at it
     print("Connection OK")
     lastline = 'a'
+    rxinfo['gps_loc_time'] = time.time()
     while lastline != '': # Keep parsing packets from stdin
         is_valid=False
         while is_valid==False: # Keep trying to parse lines until one is valid

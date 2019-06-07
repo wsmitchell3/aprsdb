@@ -4,6 +4,18 @@ CREATE TABLE sessions(
 	session_offset BIGINT DEFAULT 0
 );
 
+CREATE TABLE location(
+	lid BIGSERIAL PRIMARY KEY,
+	latitude DOUBLE PRECISION,
+	longitude DOUBLE PRECISION,
+	altitude DOUBLE PRECISION,
+	linestring geometry,
+	posambiguity VARCHAR(8)
+	CONSTRAINT loc_geom_point_chk check(st_geometrytype(linestring) = 'ST_Point'::text OR linestring IS NULL)
+);
+
+CREATE INDEX location_idx ON location USING GIST (linestring);
+
 CREATE TABLE common(
 	pid BIGSERIAL PRIMARY KEY,
 	src VARCHAR(9),
@@ -12,6 +24,7 @@ CREATE TABLE common(
 	via VARCHAR(16),
 	format VARCHAR(64) NOT NULL,
 	raw VARCHAR(256) NOT NULL,
+	rx_loc_id BIGINT REFERENCES location(lid) ON DELETE CASCADE,
 	rxtime DOUBLE PRECISION,
 	rxsession BIGINT REFERENCES sessions(session_id) ON DELETE CASCADE,
 	is_subpacket BOOL DEFAULT False
@@ -25,21 +38,9 @@ CREATE TABLE aprsdb_errs(
 	msg VARCHAR(256)
 );
 
-CREATE TABLE location(
-	lid BIGSERIAL PRIMARY KEY,
-	latitude DOUBLE PRECISION,
-	longitude DOUBLE PRECISION,
-	altitude DOUBLE PRECISION,
-	linestring geometry,
-	posambiguity VARCHAR(8)
-	CONSTRAINT loc_geom_point_chk check(st_geometrytype(linestring) = 'ST_Point'::text OR linestring IS NULL)
-);
-
-CREATE INDEX location_idx ON location USING GIST (linestring);
-
 CREATE TABLE map_entry(
 	pid BIGSERIAL PRIMARY KEY REFERENCES common(pid) ON DELETE CASCADE,
-	lid BIGSERIAL REFERENCES location(lid) ON DELETE CASCADE,
+	lid BIGINT REFERENCES location(lid) ON DELETE CASCADE,
 	symbol CHAR,
 	symbol_table CHAR,
 	course FLOAT,
