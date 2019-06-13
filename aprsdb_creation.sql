@@ -316,3 +316,45 @@ CREATE VIEW links_last_60 AS
 	WHERE c1.rxtime > (SELECT max(rxtime)-3600 FROM common)
 		AND c1.is_subpacket=False
 	GROUP BY r1.route_id, src.call, dest.call, src.loc, dest.loc;
+
+CREATE VIEW rx_locations AS
+	SELECT l1.lid,
+		l1.linestring,
+		MIN(to_timestamp(c1.rxtime) at time zone 'UTC'),
+		MAX(to_timestamp(c1.rxtime) at time zone 'UTC'),
+		COUNT(*)
+	FROM common AS c1 INNER JOIN location AS l1 ON c1.rx_loc_id=l1.lid
+	GROUP BY l1.lid;
+
+
+CREATE VIEW last_hops AS
+-- Heard via digipeater
+(SELECT t1.pid, l1.linestring AS rx_linestring, 
+	d1.loc AS tx_linestring,
+	ST_SetSRID(ST_MakeLine(l1.linestring, d1.loc), 4326) AS last_hop,
+	ST_DistanceSphere(l1.linestring, d1.loc)/1000 AS dist_km
+ FROM
+   (SELECT paths.pid,
+ 		MAX(paths.ho) AS last_hop
+	FROM paths
+	GROUP BY paths.pid)
+	AS t1
+	INNER JOIN common AS c1 ON t1.pid=c1.pid
+	INNER JOIN location AS l1 ON c1.rx_loc_id=l1.lid
+	INNER JOIN paths AS p1 ON t1.pid = p1.pid
+	INNER JOIN routes AS r1 ON p1.route_id = r1.route_id
+	INNER JOIN digis AS d1 ON r1.src = d1.call
+WHERE p1.hop=t1.last_hop)
+UNION
+-- Heard direct
+(SELECT c1.pid, l1.linestring AS rx_linestring,
+	l2.linestring AS tx_linestring,
+	ST_SetSRID(ST_MakeLine(l1.linestring, l2.linestring), 4326) AS last_hop,
+	ST_DistanceSphere(l1.linestring, l2.linestring)/1000 AS dist_km
+FROM common AS c1
+	INNER JOIN location AS l1 ON c1.rx_loc_id = l1.lid
+	INNER JOIN map_entry AS m1 ON c1.pid=m1.pid
+	INNER JOIN location AS l2 ON m1.lid=l2.lid
+	LEFT JOIN paths AS p1 ON c1.pid=p1.pid
+WHERE p1.hop IS NULL AND c1.is_subpacket=false AND c1.format!='object');
+
