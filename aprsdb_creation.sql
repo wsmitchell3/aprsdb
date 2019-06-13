@@ -327,10 +327,8 @@ CREATE VIEW rx_locations AS
 	GROUP BY l1.lid;
 
 
-CREATE VIEW last_hops AS
--- Heard via digipeater
-(SELECT t1.pid, l1.linestring AS rx_linestring, 
-	d1.loc AS tx_linestring,
+CREATE VIEW heard_digi AS
+(SELECT t1.pid,
 	ST_SetSRID(ST_MakeLine(l1.linestring, d1.loc), 4326) AS last_hop,
 	ST_DistanceSphere(l1.linestring, d1.loc)/1000 AS dist_km
  FROM
@@ -344,11 +342,10 @@ CREATE VIEW last_hops AS
 	INNER JOIN paths AS p1 ON t1.pid = p1.pid
 	INNER JOIN routes AS r1 ON p1.route_id = r1.route_id
 	INNER JOIN digis AS d1 ON r1.src = d1.call
-WHERE p1.hop=t1.last_hop)
-UNION
--- Heard direct
-(SELECT c1.pid, l1.linestring AS rx_linestring,
-	l2.linestring AS tx_linestring,
+WHERE p1.hop=t1.last_hop);
+
+CREATE VIEW heard_non_digi AS 
+(SELECT c1.pid,
 	ST_SetSRID(ST_MakeLine(l1.linestring, l2.linestring), 4326) AS last_hop,
 	ST_DistanceSphere(l1.linestring, l2.linestring)/1000 AS dist_km
 FROM common AS c1
