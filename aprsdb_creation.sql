@@ -333,7 +333,7 @@ CREATE VIEW heard_digi AS
 	ST_DistanceSphere(l1.linestring, d1.loc)/1000 AS dist_km
  FROM
    (SELECT paths.pid,
- 		MAX(paths.ho) AS last_hop
+ 		MAX(paths.hop) AS last_hop
 	FROM paths
 	GROUP BY paths.pid)
 	AS t1
