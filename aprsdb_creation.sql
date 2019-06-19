@@ -328,7 +328,7 @@ CREATE VIEW rx_locations AS
 
 
 CREATE VIEW heard_digi AS
-(SELECT c1.src, t1.pid,
+(SELECT d1.call, t1.pid,
 	ST_SetSRID(ST_MakeLine(l1.linestring, d1.loc), 4326) AS last_hop,
 	ST_DistanceSphere(l1.linestring, d1.loc)/1000 AS dist_km
  FROM
