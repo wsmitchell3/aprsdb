@@ -387,7 +387,8 @@ def process_parsed(parsed, conn, rxtime=time.time(), is_subpacket=False):
         # Watch out for digis not using standard symbols
         cur.execute("SELECT call FROM digis WHERE call=%s;", (parsed['src'],))
         if cur.fetchone() != None: # Call is a known digi
-            process_digi(parsed, cur)
+            if parsed['format'] not in ('object','item'): # Don't use digipeater data from objects or items
+                process_digi(parsed, cur)
 
     # Handle third-party packets
     if parsed['format']=='thirdparty':
