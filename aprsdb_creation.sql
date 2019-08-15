@@ -228,6 +228,38 @@ CREATE VIEW tx_igate_positions AS
 		INNER JOIN digis AS d1 ON c2.src=d1.call 
 	GROUP BY d1.call, c1.src, c1.format, l1.linestring, ST_DistanceSphere(l1.linestring, d1.loc)/1000;
 
+CREATE VIEW tx_igate_positions_last_10 AS -- TX-igated positions last 10 min
+	SELECT ROW_NUMBER() OVER (), 
+		d1.call, 
+		c1.src, 
+		c1.format,
+		l1.linestring, 
+		COUNT(l1.linestring), 
+		ST_DistanceSphere(l1.linestring, d1.loc)/1000 AS dist_km 
+	FROM common AS c1 INNER JOIN thirdparty AS t1 ON c1.pid=t1.subpacket_id 
+		INNER JOIN common AS c2 on t1.pid=c2.pid 
+		INNER JOIN map_entry AS m1 ON c1.pid=m1.pid 
+		INNER JOIN location AS l1 ON m1.lid=l1.lid 
+		INNER JOIN digis AS d1 ON c2.src=d1.call 
+	WHERE c1.rxtime > (SELECT max(rxtime)-600 FROM common) -- 600 sec = 10 min
+	GROUP BY d1.call, c1.src, c1.format, l1.linestring, ST_DistanceSphere(l1.linestring, d1.loc)/1000;
+
+CREATE VIEW tx_igate_positions_last_60 AS -- TX-igated positions last 60 min
+	SELECT ROW_NUMBER() OVER (), 
+		d1.call, 
+		c1.src, 
+		c1.format,
+		l1.linestring, 
+		COUNT(l1.linestring), 
+		ST_DistanceSphere(l1.linestring, d1.loc)/1000 AS dist_km 
+	FROM common AS c1 INNER JOIN thirdparty AS t1 ON c1.pid=t1.subpacket_id 
+		INNER JOIN common AS c2 on t1.pid=c2.pid 
+		INNER JOIN map_entry AS m1 ON c1.pid=m1.pid 
+		INNER JOIN location AS l1 ON m1.lid=l1.lid 
+		INNER JOIN digis AS d1 ON c2.src=d1.call 
+	WHERE c1.rxtime > (SELECT max(rxtime)-3600 FROM common) -- 3600 sec = 10 min
+	GROUP BY d1.call, c1.src, c1.format, l1.linestring, ST_DistanceSphere(l1.linestring, d1.loc)/1000;
+
 CREATE VIEW tx_igate_counts AS
 	SELECT ROW_NUMBER() OVER (),
 		d1.call,
@@ -269,6 +301,42 @@ CREATE VIEW rf_positions AS
 		INNER JOIN location AS l1 ON l1.lid=m1.lid 
 		FULL JOIN object AS o1 ON m1.pid=o1.pid
 	WHERE c1.is_subpacket=False 
+	GROUP BY c1.src, c1.format, m1.symbol, m1.symbol_table, l1.linestring, o1.object_name;
+
+CREATE VIEW rf_positions_last_10 AS -- RF positions last 10 minutes
+	SELECT row_number() OVER (), 
+	CASE WHEN c1.format='object' THEN o1.object_name
+		ELSE c1.src
+		END AS src,
+		c1.format, 
+		m1.symbol, 
+		m1.symbol_table, 
+		count(l1.linestring), 
+		l1.linestring 
+	FROM map_entry AS m1 
+		INNER JOIN common AS c1 ON m1.pid=c1.pid 
+		INNER JOIN location AS l1 ON l1.lid=m1.lid 
+		FULL JOIN object AS o1 ON m1.pid=o1.pid
+	WHERE c1.rxtime > (SELECT max(rxtime)-600 FROM common) -- 600 sec = 10 min
+		AND c1.is_subpacket=False  
+	GROUP BY c1.src, c1.format, m1.symbol, m1.symbol_table, l1.linestring, o1.object_name;
+
+CREATE VIEW rf_positions_last_60 AS -- RF positions last 60 minutes
+	SELECT row_number() OVER (), 
+	CASE WHEN c1.format='object' THEN o1.object_name
+		ELSE c1.src
+		END AS src,
+		c1.format, 
+		m1.symbol, 
+		m1.symbol_table, 
+		count(l1.linestring), 
+		l1.linestring 
+	FROM map_entry AS m1 
+		INNER JOIN common AS c1 ON m1.pid=c1.pid 
+		INNER JOIN location AS l1 ON l1.lid=m1.lid 
+		FULL JOIN object AS o1 ON m1.pid=o1.pid
+	WHERE c1.rxtime > (SELECT max(rxtime)-3600 FROM common) --3600 sec = 60 min
+		AND c1.is_subpacket=False  
 	GROUP BY c1.src, c1.format, m1.symbol, m1.symbol_table, l1.linestring, o1.object_name;
 
 CREATE VIEW digi_stats AS
