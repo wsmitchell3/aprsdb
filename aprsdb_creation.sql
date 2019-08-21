@@ -396,7 +396,7 @@ CREATE VIEW rx_locations AS
 
 
 CREATE VIEW heard_digi AS
-(SELECT d1.call, t1.pid,
+(SELECT t1.pid, d1.call, 
 	ST_SetSRID(ST_MakeLine(l1.linestring, d1.loc), 4326) AS last_hop,
 	ST_DistanceSphere(l1.linestring, d1.loc)/1000 AS dist_km
  FROM
@@ -413,7 +413,7 @@ CREATE VIEW heard_digi AS
 WHERE p1.hop=t1.last_hop);
 
 CREATE VIEW heard_non_digi AS 
-(SELECT c1.src, c1.pid,
+(SELECT c1.pid, c1.src,
 	ST_SetSRID(ST_MakeLine(l1.linestring, l2.linestring), 4326) AS last_hop,
 	ST_DistanceSphere(l1.linestring, l2.linestring)/1000 AS dist_km
 FROM common AS c1
