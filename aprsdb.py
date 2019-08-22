@@ -26,15 +26,15 @@ args = parser.parse_args(sys.argv[1:])
 # Read the config file
 config = configparser.ConfigParser()
 try:
-    config.readfp(open(vars(args)['config'])) # Try to open the preferred config
+    config.read_file(open(vars(args)['config'])) # Try to open the preferred config
 except TypeError:
     try:
-        config.readfp(open(os.path.expanduser("~") + os.path.sep + 'aprsdb.conf')) # Default to a locally-configured config
+        config.read_file(open(os.path.expanduser("~") + os.path.sep + 'aprsdb.conf')) # Default to a locally-configured config
     except FileNotFoundError:
         try:
-            config.readfp(open(os.path.split(sys.argv[0])[0] + 'aprsdb.conf')) # Fallback to the install directory
+            config.read_file(open(os.path.split(sys.argv[0])[0] + 'aprsdb.conf')) # Fallback to the install directory
         except FileNotFoundError:
-            config.readfp(open(os.path.join(os.path.split(sys.argv[0])[0], 'generic_aprsdb.conf'))) # Fallback to the generic one
+            config.read_file(open(os.path.join(os.path.split(sys.argv[0])[0], 'generic_aprsdb.conf'))) # Fallback to the generic one
 
 # Set info for receive station
 rxinfo={'call':config.get('aprs', 'rxcall'), 'symbol':config.get('aprs', 'rxsymbol'), 'symbol_table': config.get('aprs', 'rxtable'), 'latitude':config.get('aprs', 'latitude'), 'longitude':config.get('aprs','longitude')}
@@ -301,6 +301,11 @@ def process_packet(packet, conn, rxtime=None, is_subpacket=False):
     except:
         # Something else went wrong
         print("Unable to parse packet") # DEBUG
+        cur = conn.cursor()
+        try:
+            cur.execute("INSERT INTO aprsdb_errs (rxtime, rxsession, raw, message) VALUES (%s,%s,%s,%s);", (rxtime, session_id, packet, "Unable to parse packet")) 
+        except:
+            raise
         raise
         return(-5) # Unable to parse packet
 
@@ -603,4 +608,7 @@ if __name__ == "__main__": # Program is running directly
         # Parse the direwolf output (channel, timestamp, packet)
         (channel, mytime, mypacket) = process_direwolf(lastline)
         # Process that output
-        process_packet(mypacket, conn, rxtime=mytime)
+        try:
+            process_packet(mypacket, conn, rxtime=mytime)
+        except:
+            pass
