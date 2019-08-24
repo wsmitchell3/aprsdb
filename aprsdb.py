@@ -301,7 +301,11 @@ def process_packet(packet, conn, rxtime=None, is_subpacket=False):
     except:
         # Something else went wrong
         print("Unable to parse packet") # DEBUG
-        raise
+        try:
+            cur=conn.cursor()
+            cursor.execute("INSERT INTO aprsdb_errs (rxtime, rxsession, raw, message) VALUES (%s, %s, %s, %s);", (rxtime, session_id, packet, "Unable to parse packet"))
+        except:
+            pass
         return(-5) # Unable to parse packet
 
     # Add the receiving station metadata to the parsed data
