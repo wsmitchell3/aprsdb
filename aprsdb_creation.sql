@@ -23,7 +23,7 @@ CREATE TABLE common(
 	path VARCHAR(64),
 	via VARCHAR(16),
 	format VARCHAR(64) NOT NULL,
-	raw VARCHAR(256) NOT NULL,
+	raw VARCHAR(332) NOT NULL,
 	rx_loc_id BIGINT REFERENCES location(lid) ON DELETE CASCADE,
 	rxtime DOUBLE PRECISION,
 	rxsession BIGINT REFERENCES sessions(session_id) ON DELETE CASCADE,
