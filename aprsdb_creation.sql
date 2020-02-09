@@ -34,8 +34,8 @@ CREATE TABLE aprsdb_errs(
 	eid SERIAL PRIMARY KEY,
 	rxtime DOUBLE PRECISION,
 	rxsession BIGINT REFERENCES sessions(session_id) ON DELETE CASCADE,
-	raw VARCHAR(256) NOT NULL,
-	msg VARCHAR(256)
+	raw VARCHAR(350) NOT NULL, -- Theoretical packet max is 332
+	msg VARCHAR(512)
 );
 
 CREATE TABLE map_entry(
