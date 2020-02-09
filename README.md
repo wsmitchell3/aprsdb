@@ -40,6 +40,7 @@ git clone https://github.com/wsmitchell3/aprsdb
 git clone https://github.com/wb2osz/direwolf
 sudo pip3 install ~/Install/aprs-python
 sudo pip3 install psycopg2
+sudo pip3 install gpsd-py3
 ```
 
 Install Direwolf

@@ -301,12 +301,11 @@ def process_packet(packet, conn, rxtime=None, is_subpacket=False):
     except:
         # Something else went wrong
         print("Unable to parse packet") # DEBUG
-        cur = conn.cursor()
         try:
-            cur.execute("INSERT INTO aprsdb_errs (rxtime, rxsession, raw, message) VALUES (%s,%s,%s,%s);", (rxtime, session_id, packet, "Unable to parse packet")) 
+            cur=conn.cursor()
+            cursor.execute("INSERT INTO aprsdb_errs (rxtime, rxsession, raw, message) VALUES (%s, %s, %s, %s);", (rxtime, session_id, packet, "Unable to parse packet"))
         except:
-            raise
-        raise
+            pass
         return(-5) # Unable to parse packet
 
     # Add the receiving station metadata to the parsed data
@@ -608,7 +607,4 @@ if __name__ == "__main__": # Program is running directly
         # Parse the direwolf output (channel, timestamp, packet)
         (channel, mytime, mypacket) = process_direwolf(lastline)
         # Process that output
-        try:
-            process_packet(mypacket, conn, rxtime=mytime)
-        except:
-            pass
+        process_packet(mypacket, conn, rxtime=mytime)
